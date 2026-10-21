@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<title>Controle de Gastos</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Ctext x='32' y='45' font-size='36' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3ER$%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f3f5f7; --sup: #ffffff; --txt: #1b2430; --suave: #5b6675; --borda: #d7dde4;
+    --pri: #0f766e; --pri-txt: #ffffff; --pri-suave: #e1f3f0;
+    --perigo: #b42318; --perigo-suave: #fdecea; --aviso: #7a4f00; --aviso-suave: #fff3d1;
+    --futuro: #6941c6;
+    --raio: 14px; color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1419; --sup: #1a2129; --txt: #e7ecf1; --suave: #9aa6b4; --borda: #2f3944;
+      --pri: #2bb3a3; --pri-txt: #04201c; --pri-suave: #133b37;
+      --perigo: #ff8a80; --perigo-suave: #3a1715; --aviso: #ffcc66; --aviso-suave: #3a2d0b;
+      --futuro: #b69cff; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--txt);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .topo { position: sticky; top: 0; z-index: 10; background: var(--sup); border-bottom: 1px solid var(--borda);
+    padding: calc(8px + env(safe-area-inset-top)) 16px 8px; }
+  .topo h1 { font-size: 1.1rem; margin: 0 auto 8px; max-width: 760px; }
+  .abas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 760px; margin: 0 auto; }
+  .abas button { min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--suave);
+    font: inherit; font-weight: 600; font-size: .95rem; cursor: pointer; }
+  .abas button[aria-selected="true"] { background: var(--pri-suave); color: var(--pri); }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
+  h2 { font-size: 1.25rem; margin: 0 0 12px; }
+  h3 { font-size: 1.05rem; margin: 24px 0 10px; }
+  .caixa { background: var(--sup); border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px; margin-bottom: 16px; }
+  label, legend { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 12px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; }
+  legend { margin-bottom: 6px; padding: 0; }
+  input, select, textarea { display: block; width: 100%; margin-top: 4px; min-height: 48px; padding: 10px 12px;
+    font: inherit; font-size: 16px; color: var(--txt); background: var(--bg); border: 1px solid var(--borda); border-radius: 10px; }
+  textarea { min-height: 64px; resize: vertical; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px solid color-mix(in srgb, var(--pri) 45%, transparent); outline-offset: 1px; }
+  #f-valor { font-size: 1.3rem; font-weight: 700; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .chips label { margin: 0; min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px;
+    border: 1px solid var(--borda); border-radius: 999px; background: var(--bg); font-weight: 500; cursor: pointer; user-select: none; }
+  .chips input:checked + label { background: var(--pri); border-color: var(--pri); color: var(--pri-txt); font-weight: 700; }
+  .chips input:focus-visible + label { outline: 3px solid color-mix(in srgb, var(--pri) 45%, transparent); }
+  .btn { min-height: 52px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--borda); background: var(--sup);
+    color: var(--txt); font: inherit; font-weight: 700; cursor: pointer; }
+  .btn.primario { background: var(--pri); border-color: var(--pri); color: var(--pri-txt); }
+  .btn.perigo { color: var(--perigo); }
+  .btn.pequeno { min-height: 44px; padding: 8px 14px; font-size: .92rem; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+  .acoes .btn { flex: 1 1 180px; }
+  .erro { color: var(--perigo); font-weight: 600; min-height: 1.2em; margin: 4px 0 10px; }
+  .previa { background: var(--pri-suave); border-radius: 10px; padding: 12px; margin: 0 0 12px; font-size: .95rem; }
+  .previa ol { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 8px 0 0; }
+  .previa li { background: var(--sup); border-radius: 8px; padding: 4px 8px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  .aviso { background: var(--aviso-suave); color: var(--aviso); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-weight: 600; }
+  .nota { color: var(--suave); font-size: .9rem; }
+  .lista { list-style: none; padding: 0; margin: 0; }
+  .item { background: var(--sup); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px 14px; margin-bottom: 10px; }
+  .item-topo { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .item-topo strong { overflow-wrap: anywhere; }
+  .valor { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .item-meta, .item-obs { color: var(--suave); font-size: .9rem; margin-top: 2px; overflow-wrap: anywhere; }
+  .item-parc { font-size: .9rem; margin-top: 6px; }
+  .item-acoes { display: flex; gap: 8px; margin-top: 10px; }
+  .item-acoes .btn { flex: 1; }
+  .selo { display: inline-block; font-size: .78rem; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+    background: color-mix(in srgb, var(--futuro) 16%, transparent); color: var(--futuro); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .card { background: var(--sup); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px 14px; }
+  .card span { display: block; color: var(--suave); font-size: .85rem; font-weight: 600; }
+  .card strong { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+  .card.destaque strong { color: var(--pri); }
+  .card.fut strong { color: var(--futuro); }
+  .barras { display: grid; gap: 10px; }
+  .barra-linha { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: .95rem; }
+  .barra-linha .num { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+  .barra { grid-column: 1 / -1; height: 8px; background: var(--borda); border-radius: 99px; overflow: hidden; }
+  .barra > span { display: block; height: 100%; background: var(--pri); border-radius: 99px; }
+  .tabela-wrap { overflow-x: auto; background: var(--sup); border: 1px solid var(--borda); border-radius: var(--raio); }
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--borda); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  th { color: var(--suave); font-size: .82rem; font-weight: 700; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.desc { white-space: normal; min-width: 140px; }
+  .sobe { color: var(--perigo); } .desce { color: var(--pri); }
+  .vazio { text-align: center; color: var(--suave); padding: 24px 8px; }
+  details summary { cursor: pointer; font-weight: 700; min-height: 32px; }
+  #toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: var(--txt); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-weight: 600; opacity: 0;
+    transition: opacity .2s, transform .2s; pointer-events: none; max-width: calc(100% - 32px); z-index: 20; }
+  #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="topo">
+  <h1>Controle de Gastos</h1>
+  <nav class="abas" role="tablist">
+    <button role="tab" data-aba="lancar" aria-selected="true">Lançar</button>
+    <button role="tab" data-aba="despesas" aria-selected="false">Despesas</button>
+    <button role="tab" data-aba="relatorios" aria-selected="false">Relatórios</button>
+    <button role="tab" data-aba="dados" aria-selected="false">Dados</button>
+  </nav>
+</header>
+
+<main>
+  <div id="aviso-armazenamento" class="aviso" hidden></div>
+
+  <!-- ===== LANÇAR ===== -->
+  <section id="aba-lancar">
+    <form id="form" class="caixa" novalidate autocomplete="off">
+      <h2 id="form-titulo">Nova despesa</h2>
+      <label>Descrição
+        <input id="f-descricao" maxlength="120" placeholder="Ex.: Mercado, Uber, Farmácia" enterkeyhint="next">
+      </label>
+      <div class="grade">
+        <label><span id="rotulo-valor">Valor (R$)</span>
+          <input id="f-valor" inputmode="decimal" placeholder="0,00" enterkeyhint="done">
+        </label>
+        <label>Data
+          <input id="f-data" type="date">
+        </label>
+      </div>
+      <fieldset>
+        <legend>Categoria</legend>
+        <div class="chips" id="f-categoria"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Forma de pagamento</legend>
+        <div class="chips" id="f-pagamento"></div>
+      </fieldset>
+      <div id="bloco-credito" hidden>
+        <div class="grade">
+          <label>Parcelas <select id="f-parcelas"></select></label>
+          <label>Mês da 1ª fatura <select id="f-fatura"></select></label>
+        </div>
+        <div id="previa-parcelas" class="previa" aria-live="polite"></div>
+      </div>
+      <div class="grade">
+        <label id="campo-cartao" hidden>Nome do cartão
+          <input id="f-cartao" list="lista-cartoes" maxlength="40" placeholder="Ex.: Nubank">
+        </label>
+        <label>Responsável
+          <input id="f-responsavel" list="lista-responsaveis" maxlength="40" placeholder="Opcional">
+        </label>
+      </div>
+      <label>Observação (opcional)
+        <textarea id="f-obs" rows="2" maxlength="300"></textarea>
+      </label>
+      <p id="form-erro" class="erro" role="alert"></p>
+      <div class="acoes">
+        <button type="submit" class="btn primario" id="btn-salvar">Salvar despesa</button>
+        <button type="button" class="btn" id="btn-cancelar" hidden>Cancelar edição</button>
+      </div>
+      <datalist id="lista-cartoes"></datalist>
+      <datalist id="lista-responsaveis"></datalist>
+    </form>
+    <p class="nota" id="lembrete-backup"></p>
+    <h3>Últimos lançamentos</h3>
+    <ul class="lista" id="ultimos"></ul>
+  </section>
+
+  <!-- ===== FILTROS (compartilhados por Despesas e Relatórios) ===== -->
+  <section id="filtros" class="caixa" hidden>
+    <details id="filtros-details">
+      <summary>Filtros <span class="nota" id="filtros-resumo"></span></summary>
+      <div class="grade" style="margin-top:12px">
+        <label class="so-lista">Período: de <select id="fl-de"></select></label>
+        <label class="so-lista">até <select id="fl-ate"></select></label>
+        <label>Categoria <select id="fl-categoria"></select></label>
+        <label>Pagamento <select id="fl-pagamento"></select></label>
+        <label>Cartão <select id="fl-cartao"></select></label>
+        <label>Responsável <select id="fl-responsavel"></select></label>
+        <label class="so-lista">Buscar texto <input id="fl-busca" type="search" placeholder="Descrição, obs..."></label>
+      </div>
+      <button type="button" class="btn pequeno" id="btn-limpar-filtros">Limpar filtros</button>
+    </details>
+  </section>
+
+  <!-- ===== DESPESAS ===== -->
+  <section id="aba-despesas" hidden>
+    <div class="cards" id="resumo-lista"></div>
+    <p class="nota">Compras no cartão de crédito entram no mês da fatura, parcela por parcela — o valor total não é somado de novo.</p>
+    <div class="acoes" style="margin-bottom:16px">
+      <button type="button" class="btn pequeno" id="btn-csv-lista">Exportar estes registros (CSV)</button>
+    </div>
+    <ul class="lista" id="lista"></ul>
+  </section>
+
+  <!-- ===== RELATÓRIOS ===== -->
+  <section id="aba-relatorios" hidden>
+    <label>Mês do relatório <select id="rel-mes"></select></label>
+    <div class="cards" id="rel-cards"></div>
+    <h3>Gastos por categoria no mês</h3>
+    <div class="caixa"><div class="barras" id="rel-categorias"></div></div>
+    <h3>Comparação entre meses</h3>
+    <div class="tabela-wrap" id="rel-comparacao"></div>
+    <h3>Compromissos futuros</h3>
+    <div class="cards" id="rel-futuro-cards"></div>
+    <h3>Projeção mensal do que está a vencer</h3>
+    <div class="tabela-wrap" id="rel-projecao"></div>
+    <h3>Parcelamentos em andamento</h3>
+    <div class="tabela-wrap" id="rel-parcelamentos"></div>
+  </section>
+
+  <!-- ===== DADOS ===== -->
+  <section id="aba-dados" hidden>
+    <div class="caixa">
+      <h2>Onde ficam seus dados</h2>
+      <p>Os registros ficam salvos <strong>somente neste navegador, neste aparelho</strong> (armazenamento local do navegador). Nada é enviado para a internet.</p>
+      <ul>
+        <li><strong>Não há sincronização</strong> entre celular e computador, nem entre navegadores diferentes no mesmo aparelho.</li>
+        <li>Os dados continuam salvos ao fechar a página, mas <strong>podem ser apagados</strong> se você limpar os dados de navegação, usar aba anônima ou desinstalar o navegador. No iPhone, o Safari pode apagar dados de sites não usados por 7 dias — adicione à Tela de Início para evitar isso.</li>
+        <li>Para se proteger e para levar os dados a outro aparelho, use <strong>Baixar backup</strong> e depois <strong>Restaurar backup</strong> no outro aparelho.</li>
+      </ul>
+      <p id="dados-status" class="nota"></p>
+    </div>
+    <div class="caixa">
+      <h2>Backup</h2>
+      <div class="acoes">
+        <button type="button" class="btn primario" id="btn-backup">Baixar backup (.json)</button>
+        <button type="button" class="btn" id="btn-restaurar">Restaurar backup…</button>
+      </div>
+      <input type="file" id="arquivo-backup" accept=".json,application/json" hidden>
+      <p class="nota">Restaurar <strong>substitui</strong> todos os registros atuais deste navegador pelos do arquivo. Uma cópia dos dados atuais é guardada antes, e pode ser recuperada com “Desfazer última restauração”.</p>
+      <button type="button" class="btn pequeno" id="btn-desfazer-restauracao" hidden>Desfazer última restauração</button>
+    </div>
+    <div class="caixa">
+      <h2>Exportar para Excel (CSV)</h2>
+      <fieldset>
+        <legend>Formato</legend>
+        <div class="chips">
+          <input type="radio" name="formato-csv" id="fmt-despesas" value="despesas" checked><label for="fmt-despesas">Uma linha por despesa</label>
+          <input type="radio" name="formato-csv" id="fmt-mensal" value="mensal"><label for="fmt-mensal">Uma linha por mês de cobrança (parcelas separadas)</label>
+        </div>
+      </fieldset>
+      <div class="acoes">
+        <button type="button" class="btn" id="btn-csv-todos">Exportar todos</button>
+        <button type="button" class="btn" id="btn-csv-filtrados">Exportar filtrados</button>
+      </div>
+      <p class="nota">“Filtrados” usa os filtros da aba Despesas (<span id="dados-filtro-resumo"></span>). Arquivo em UTF-8, separado por ponto e vírgula e com vírgula decimal — abre direto no Excel em português.</p>
+    </div>
+  </section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Núcleo de cálculo: funções puras, sem acesso à tela. Testado por testes.js -->
+<script id="nucleo">
+const Nucleo = (function () {
+  'use strict';
+
+  const CATEGORIAS = [['alimentacao', 'Alimentação'], ['transporte', 'Transporte'], ['moradia', 'Moradia'],
+    ['saude', 'Saúde'], ['lazer', 'Lazer'], ['viagem', 'Viagem'], ['outros', 'Outros']];
+  const PAGAMENTOS = [['pix', 'Pix'], ['debito', 'Débito'], ['dinheiro', 'Dinheiro'], ['boleto', 'Boleto'],
+    ['credito', 'Cartão de crédito']];
+  const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto',
+    'setembro', 'outubro', 'novembro', 'dezembro'];
+  const MAX_PARCELAS = 48;
+  const MAX_VALOR = 100000000 * 100; // R$ 100 milhões, em centavos
+
+  const rotulo = (lista, chave) => (lista.find(x => x[0] === chave) || [chave, chave])[1];
+  const rotuloCategoria = c => rotulo(CATEGORIAS, c);
+  const rotuloPagamento = p => rotulo(PAGAMENTOS, p);
+
+  // Todos os valores são guardados em centavos (inteiros) para não haver erro de arredondamento.
+  function parseValor(texto) {
+    let s = String(texto == null ? '' : texto).replace(/\s/g, '').replace(/^R\$/i, '');
+    if (!s) return NaN;
+    if (s.includes(',')) {
+      // Formato brasileiro: ponto = milhar, vírgula = centavos ("1.234,56")
+      if (!/^(\d{1,3}(\.\d{3})+|\d+),\d{0,2}$/.test(s)) return NaN;
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, ''); // "1.234" = mil duzentos e trinta e quatro reais
+    } else if (!/^\d+(\.\d{1,2})?$/.test(s)) {
+      return NaN;
+    }
+    const [inteiro, dec = ''] = s.split('.');
+    return Number(inteiro) * 100 + Number((dec + '00').slice(0, 2));
+  }
+
+  function formatarNumero(c) {
+    const neg = c < 0; c = Math.abs(Math.round(c));
+    const inteiro = String(Math.floor(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (neg ? '-' : '') + inteiro + ',' + String(c % 100).padStart(2, '0');
+  }
+  const formatarBRL = c => (c < 0 ? '-R$ ' : 'R$ ') + formatarNumero(Math.abs(c));
+  // Para CSV: sem separador de milhar, vírgula decimal ("1234,56")
+  function numeroCSV(c) {
+    const neg = c < 0; c = Math.abs(Math.round(c));
+    return (neg ? '-' : '') + Math.floor(c / 100) + ',' + String(c % 100).padStart(2, '0');
+  }
+
+  const formatarData = iso => { const [a, m, d] = iso.split('-'); return `${d}/${m}/${a}`; };
+  const rotuloMes = ym => { const [a, m] = ym.split('-'); return `${MESES[+m - 1]}/${a}`; };
+  const rotuloMesLongo = ym => { const [a, m] = ym.split('-'); return `${MESES_LONGOS[+m - 1]} de ${a}`; };
+  const mesCSV = ym => { const [a, m] = ym.split('-'); return `${m}/${a}`; };
+
+  function addMeses(ym, n) {
+    const [a, m] = ym.split('-').map(Number);
+    const t = a * 12 + (m - 1) + n;
+    return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`;
+  }
+
+  function hojeISO(d) {
+    d = d || new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function dataValida(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const [a, m, d] = s.split('-').map(Number);
+    const dt = new Date(Date.UTC(a, m - 1, d));
+    return dt.getUTCFullYear() === a && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+  }
+  const mesValido = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+
+  // Divide o total em n parcelas; os centavos que sobram vão para a 1ª parcela, preservando o total exato.
+  function dividirParcelas(total, n) {
+    n = Math.max(1, Math.floor(n));
+    const base = Math.floor(total / n);
+    const resto = total - base * n;
+    return Array.from({ length: n }, (_, i) => (i === 0 ? base + resto : base));
+  }
+
+  // Lançamentos = quanto a despesa pesa em cada mês. É a ÚNICA fonte usada nos totais:
+  // compra no crédito gera uma linha por parcela (no mês da fatura); as demais, uma linha no mês da data.
+  function lancamentos(d) {
+    if (d.pagamento === 'credito') {
+      const n = d.parcelas || 1;
+      const inicio = d.primeiraFatura || addMeses(d.data.slice(0, 7), 1);
+      return dividirParcelas(d.valor, n).map((v, i) => ({ mes: addMeses(inicio, i), valor: v, parcela: i + 1, de: n, data: null }));
+    }
+    return [{ mes: d.data.slice(0, 7), valor: d.valor, parcela: 1, de: 1, data: d.data }];
+  }
+
+  // Futuro = ainda não aconteceu: data posterior a hoje, ou fatura de mês posterior ao atual.
+  const ehFuturo = (l, hoje) => (l.data ? l.data > hoje : l.mes > hoje.slice(0, 7));
+
+  function resumoParcelamento(d, hoje) {
+    const ls = lancamentos(d);
+    const futuras = ls.filter(l => ehFuturo(l, hoje));
+    return {
+      parcelas: ls.length,
+      valores: ls.map(l => l.valor),
+      primeira: ls[0].mes,
+      ultima: ls[ls.length - 1].mes,
+      pagas: ls.length - futuras.length,
+      parcelasRestantes: futuras.length,
+      restante: futuras.reduce((s, l) => s + l.valor, 0),
+      proxima: futuras.length ? futuras[0] : null,
+    };
+  }
+
+  const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  function passaFiltroAtributos(d, f) {
+    if (f.categoria && d.categoria !== f.categoria) return false;
+    if (f.pagamento && d.pagamento !== f.pagamento) return false;
+    if (f.cartao && d.cartao !== f.cartao) return false;
+    if (f.responsavel && d.responsavel !== f.responsavel) return false;
+    if (f.busca) {
+      const alvo = semAcento([d.descricao, d.obs, d.cartao, d.responsavel].join(' '));
+      if (!alvo.includes(semAcento(f.busca.trim()))) return false;
+    }
+    return true;
+  }
+  const noPeriodo = (mes, f) => (!f.de || mes >= f.de) && (!f.ate || mes <= f.ate);
+
+  function filtrar(despesas, f, hoje) {
+    let total = 0, realizado = 0, futuro = 0;
+    const itens = [];
+    for (const d of despesas) {
+      if (!passaFiltroAtributos(d, f)) continue;
+      const ls = lancamentos(d).filter(l => noPeriodo(l.mes, f));
+      if (!ls.length) continue;
+      let v = 0;
+      for (const l of ls) {
+        v += l.valor;
+        if (ehFuturo(l, hoje)) futuro += l.valor; else realizado += l.valor;
+      }
+      total += v;
+      itens.push({ despesa: d, lancamentos: ls, valorPeriodo: v });
+    }
+    itens.sort((a, b) => b.despesa.data.localeCompare(a.despesa.data) ||
+      String(b.despesa.criadoEm).localeCompare(String(a.despesa.criadoEm)));
+    return { itens, total, realizado, futuro };
+  }
+
+  function totaisPorMes(despesas, hoje) {
+    const meses = {};
+    for (const d of despesas) {
+      for (const l of lancamentos(d)) {
+        const t = meses[l.mes] || (meses[l.mes] = { total: 0, realizado: 0, futuro: 0, categorias: {} });
+        t.total += l.valor;
+        if (ehFuturo(l, hoje)) t.futuro += l.valor; else t.realizado += l.valor;
+        t.categorias[d.categoria] = (t.categorias[d.categoria] || 0) + l.valor;
+      }
+    }
+    return meses;
+  }
+
+  // Tudo que ainda vai vencer, agrupado por mês (parcelas de cartão e lançamentos com data futura).
+  function projecao(despesas, hoje) {
+    const meses = {};
+    for (const d of despesas) {
+      for (const l of lancamentos(d)) {
+        if (!ehFuturo(l, hoje)) continue;
+        const p = meses[l.mes] || (meses[l.mes] = { mes: l.mes, valor: 0, parcelas: 0, outros: 0 });
+        p.valor += l.valor;
+        if (l.de > 1) p.parcelas++; else p.outros++;
+      }
+    }
+    return Object.values(meses).sort((a, b) => a.mes.localeCompare(b.mes));
+  }
+
+  function parcelamentosAtivos(despesas, hoje) {
+    return despesas
+      .filter(d => d.pagamento === 'credito' && d.parcelas > 1)
+      .map(d => ({ despesa: d, resumo: resumoParcelamento(d, hoje) }))
+      .filter(x => x.resumo.restante > 0)
+      .sort((a, b) => a.resumo.ultima.localeCompare(b.resumo.ultima));
+  }
+
+  // ---------- CSV (Excel brasileiro) ----------
+  function celula(v) {
+    let s = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // evita que o Excel interprete texto como fórmula
+    if (/[;"\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  const linhaCSV = cols => cols.join(';');
+
+  function csvDespesas(itens, opcoes) {
+    const comPeriodo = !!(opcoes && opcoes.comPeriodo);
+    const cab = ['Data', 'Descrição', 'Categoria', 'Forma de pagamento', 'Cartão', 'Responsável', 'Valor total (R$)',
+      'Parcelas', '1ª parcela (R$)', 'Demais parcelas (R$)', 'Primeira fatura', 'Última fatura', 'Observação'];
+    if (comPeriodo) cab.push('Valor no período filtrado (R$)');
+    const linhas = [linhaCSV(cab.map(celula))];
+    for (const it of itens) {
+      const d = it.despesa, ls = lancamentos(d), cred = d.pagamento === 'credito';
+      const cols = [
+        celula(formatarData(d.data)), celula(d.descricao), celula(rotuloCategoria(d.categoria)),
+        celula(rotuloPagamento(d.pagamento)), celula(d.cartao), celula(d.responsavel),
+        numeroCSV(d.valor), String(d.parcelas),
+        cred ? numeroCSV(ls[0].valor) : '', cred && ls.length > 1 ? numeroCSV(ls[1].valor) : '',
+        cred ? mesCSV(ls[0].mes) : '', cred ? mesCSV(ls[ls.length - 1].mes) : '', celula(d.obs),
+      ];
+      if (comPeriodo) cols.push(numeroCSV(it.valorPeriodo));
+      linhas.push(linhaCSV(cols));
+    }
+    return linhas.join('\r\n') + '\r\n';
+  }
+
+  function csvMensal(itens, hoje) {
+    const cab = ['Mês de cobrança', 'Data da compra', 'Descrição', 'Categoria', 'Forma de pagamento', 'Cartão',
+      'Responsável', 'Parcela', 'Valor (R$)', 'Situação', 'Observação'];
+    const linhas = [linhaCSV(cab.map(celula))];
+    const todas = [];
+    for (const it of itens) for (const l of it.lancamentos) todas.push([it.despesa, l]);
+    todas.sort((a, b) => a[1].mes.localeCompare(b[1].mes) || a[0].data.localeCompare(b[0].data));
+    for (const [d, l] of todas) {
+      linhas.push(linhaCSV([
+        mesCSV(l.mes), celula(formatarData(d.data)), celula(d.descricao), celula(rotuloCategoria(d.categoria)),
+        celula(rotuloPagamento(d.pagamento)), celula(d.cartao), celula(d.responsavel),
+        celula(`${l.parcela}/${l.de}`), numeroCSV(l.valor), ehFuturo(l, hoje) ? 'A vencer' : 'Realizado', celula(d.obs),
+      ]));
+    }
+    return linhas.join('\r\n') + '\r\n';
+  }
+
+  // BOM no início faz o Excel reconhecer UTF-8 (acentos corretos)
+  const arquivoCSV = texto => '﻿' + texto;
+
+  // ---------- Validação e backup ----------
+  function novoId() {
+    const c = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+    if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  }
+
+  function normalizarDespesa(o) {
+    if (!o || typeof o !== 'object') throw new Error('Registro inválido.');
+    const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+    const descricao = texto(o.descricao, 120);
+    if (!descricao) throw new Error('Informe a descrição.');
+    const data = String(o.data || '');
+    if (!dataValida(data)) throw new Error('Informe uma data válida.');
+    const valor = o.valor;
+    if (!Number.isInteger(valor) || valor <= 0) throw new Error('Informe um valor maior que zero (ex.: 25,90).');
+    if (valor > MAX_VALOR) throw new Error('Valor alto demais.');
+    if (!CATEGORIAS.some(c => c[0] === o.categoria)) throw new Error('Escolha a categoria.');
+    if (!PAGAMENTOS.some(p => p[0] === o.pagamento)) throw new Error('Escolha a forma de pagamento.');
+    let parcelas = 1, primeiraFatura = null;
+    if (o.pagamento === 'credito') {
+      parcelas = Number(o.parcelas == null ? 1 : o.parcelas);
+      if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > MAX_PARCELAS) throw new Error(`Parcelas devem ser de 1 a ${MAX_PARCELAS}.`);
+      if (valor < parcelas) throw new Error('Valor baixo demais para esse número de parcelas.');
+      primeiraFatura = o.primeiraFatura || addMeses(data.slice(0, 7), 1);
+      if (!mesValido(primeiraFatura)) throw new Error('Mês da primeira fatura inválido.');
+    }
+    const usaCartao = o.pagamento === 'credito' || o.pagamento === 'debito';
+    const agora = new Date().toISOString();
+    return {
+      id: texto(o.id, 64) || novoId(),
+      descricao, data, valor,
+      categoria: o.categoria, pagamento: o.pagamento, parcelas, primeiraFatura,
+      cartao: usaCartao ? texto(o.cartao, 40) : '',
+      responsavel: texto(o.responsavel, 40),
+      obs: texto(o.obs, 300),
+      criadoEm: texto(o.criadoEm, 40) || agora,
+      atualizadoEm: texto(o.atualizadoEm, 40) || agora,
+    };
+  }
+
+  const criarBackup = (despesas, agoraISO) => ({ app: 'controle-gastos', versao: 1, exportadoEm: agoraISO, despesas });
+
+  function lerBackup(texto) {
+    let o;
+    try { o = JSON.parse(texto); } catch (e) { throw new Error('O arquivo não é um backup válido (JSON ilegível).'); }
+    const lista = Array.isArray(o) ? o : o && o.despesas;
+    if (!Array.isArray(lista)) throw new Error('O arquivo não parece ser um backup desta ferramenta.');
+    const ids = new Set();
+    return lista.map((d, i) => {
+      let n;
+      try { n = normalizarDespesa(d); } catch (e) { throw new Error(`Registro ${i + 1} do backup: ${e.message}`); }
+      if (ids.has(n.id)) n.id = novoId();
+      ids.add(n.id);
+      return n;
+    });
+  }
+
+  return {
+    CATEGORIAS, PAGAMENTOS, MAX_PARCELAS, rotuloCategoria, rotuloPagamento,
+    parseValor, formatarNumero, formatarBRL, numeroCSV, formatarData, rotuloMes, rotuloMesLongo, mesCSV,
+    addMeses, hojeISO, dataValida, dividirParcelas, lancamentos, ehFuturo, resumoParcelamento,
+    passaFiltroAtributos, filtrar, totaisPorMes, projecao, parcelamentosAtivos,
+    csvDespesas, csvMensal, arquivoCSV, novoId, normalizarDespesa, criarBackup, lerBackup,
+  };
+})();
+</script>
+
+<!-- Interface -->
+<script>
+(function () {
+  'use strict';
+  const N = Nucleo;
+  const CHAVE = 'controle-gastos:v1';
+  const CHAVE_ULTIMO_BACKUP = 'controle-gastos:ultimo-backup';
+  const CHAVE_ANTES_RESTAURAR = 'controle-gastos:antes-da-restauracao';
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const BRL = N.formatarBRL;
+  const hoje = () => N.hojeISO();
+  const mesAtual = () => hoje().slice(0, 7);
+
+  let despesas = [];
+  let editandoId = null;
+  let faturaTocada = false;
+  let aba = 'lancar';
+  const filtro = { de: '', ate: '', categoria: '', pagamento: '', cartao: '', responsavel: '', busca: '' };
+
+  // ---------- Armazenamento ----------
+  function lerChave(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function gravarChave(k, v) { localStorage.setItem(k, v); }
+
+  function armazenamentoDisponivel() {
+    try { localStorage.setItem('controle-gastos:teste', '1'); localStorage.removeItem('controle-gastos:teste'); return true; }
+    catch (e) { return false; }
+  }
+
+  function carregar() {
+    const bruto = lerChave(CHAVE);
+    if (!bruto) return;
+    try {
+      const o = JSON.parse(bruto);
+      despesas = (Array.isArray(o.despesas) ? o.despesas : []).filter(d => d && typeof d === 'object');
+    } catch (e) {
+      // Não sobrescreve dados que não conseguimos ler: guarda uma cópia e avisa.
+      try { gravarChave(CHAVE + ':ilegivel-' + Date.now(), bruto); } catch (e2) { /* sem espaço */ }
+      mostrarAviso('Os dados salvos neste navegador estavam corrompidos. Uma cópia foi preservada; restaure um backup se possível.');
+    }
+  }
+
+  function salvar() {
+    try {
+      gravarChave(CHAVE, JSON.stringify({ versao: 1, despesas }));
+      return true;
+    } catch (e) {
+      alert('Não foi possível salvar neste navegador (armazenamento cheio ou bloqueado). Baixe um backup na aba Dados.');
+      return false;
+    }
+  }
+
+  function mostrarAviso(msg) { const a = $('#aviso-armazenamento'); a.textContent = msg; a.hidden = false; }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+  }
+
+  function baixar(nome, conteudo, tipo) {
+    const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  // ---------- Abas ----------
+  function irPara(nova) {
+    aba = nova;
+    document.querySelectorAll('.abas button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === nova)));
+    ['lancar', 'despesas', 'relatorios', 'dados'].forEach(n => { $('#aba-' + n).hidden = n !== nova; });
+    $('#filtros').hidden = !(nova === 'despesas' || nova === 'relatorios');
+    document.querySelectorAll('.so-lista').forEach(e => { e.hidden = nova === 'relatorios'; });
+    renderizar();
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Formulário ----------
+  function montarChips(container, nome, opcoes) {
+    container.innerHTML = opcoes.map(([v, r]) =>
+      `<input type="radio" name="${nome}" id="${nome}-${v}" value="${v}"><label for="${nome}-${v}">${esc(r)}</label>`).join('');
+  }
+  const radio = nome => { const r = document.querySelector(`input[name="${nome}"]:checked`); return r ? r.value : ''; };
+  function marcarRadio(nome, valor) {
+    document.querySelectorAll(`input[name="${nome}"]`).forEach(r => { r.checked = r.value === valor; });
+  }
+
+  function montarOpcoesFatura(selecionado) {
+    const base = ($('#f-data').value || hoje()).slice(0, 7);
+    const opcoes = [];
+    for (let i = -1; i <= 12; i++) opcoes.push(N.addMeses(base, i));
+    if (selecionado && !opcoes.includes(selecionado)) { opcoes.push(selecionado); opcoes.sort(); }
+    const sel = $('#f-fatura');
+    sel.innerHTML = opcoes.map(m => `<option value="${m}">${N.rotuloMesLongo(m)}</option>`).join('');
+    sel.value = selecionado || N.addMeses(base, 1);
+  }
+
+  function atualizarCamposPagamento() {
+    const p = radio('pagamento');
+    $('#bloco-credito').hidden = p !== 'credito';
+    $('#campo-cartao').hidden = !(p === 'credito' || p === 'debito');
+    const n = Number($('#f-parcelas').value);
+    $('#rotulo-valor').textContent = p === 'credito' && n > 1 ? 'Valor total da compra (R$)' : 'Valor (R$)';
+    atualizarPrevia();
+  }
+
+  function atualizarPrevia() {
+    const caixa = $('#previa-parcelas');
+    if (radio('pagamento') !== 'credito') { caixa.innerHTML = ''; return; }
+    const v = N.parseValor($('#f-valor').value);
+    const n = Number($('#f-parcelas').value);
+    const ini = $('#f-fatura').value;
+    if (!(v > 0)) { caixa.textContent = 'Informe o valor para ver as parcelas.'; return; }
+    if (v < n) { caixa.textContent = 'Valor baixo demais para esse número de parcelas.'; return; }
+    const ps = N.dividirParcelas(v, n);
+    const fim = N.addMeses(ini, n - 1);
+    if (n === 1) {
+      caixa.innerHTML = `À vista no crédito: <strong>${BRL(v)}</strong> na fatura de ${N.rotuloMes(ini)}.`;
+      return;
+    }
+    const iguais = ps[0] === ps[1];
+    caixa.innerHTML =
+      `<strong>${n}x de ${BRL(ps[1])}</strong>${iguais ? '' : ` (1ª parcela de ${BRL(ps[0])} para fechar os centavos)`}` +
+      ` · Total ${BRL(v)} · De ${N.rotuloMes(ini)} até <strong>${N.rotuloMes(fim)}</strong>` +
+      `<ol>${ps.map((p, i) => `<li>${i + 1}ª ${N.rotuloMes(N.addMeses(ini, i))}: ${BRL(p)}</li>`).join('')}</ol>`;
+  }
+
+  function limparFormulario(completo) {
+    $('#f-descricao').value = '';
+    $('#f-valor').value = '';
+    $('#f-obs').value = '';
+    $('#f-parcelas').value = '1';
+    marcarRadio('categoria', '');
+    if (completo) {
+      $('#f-data').value = hoje();
+      marcarRadio('pagamento', 'pix');
+      $('#f-cartao').value = '';
+      $('#f-responsavel').value = '';
+    }
+    editandoId = null;
+    faturaTocada = false;
+    montarOpcoesFatura();
+    $('#form-titulo').textContent = 'Nova despesa';
+    $('#btn-salvar').textContent = 'Salvar despesa';
+    $('#btn-cancelar').hidden = true;
+    $('#form-erro').textContent = '';
+    atualizarCamposPagamento();
+  }
+
+  function editar(id) {
+    const d = despesas.find(x => x.id === id);
+    if (!d) return;
+    irPara('lancar');
+    editandoId = id;
+    $('#f-descricao').value = d.descricao;
+    $('#f-valor').value = N.formatarNumero(d.valor);
+    $('#f-data').value = d.data;
+    marcarRadio('categoria', d.categoria);
+    marcarRadio('pagamento', d.pagamento);
+    $('#f-parcelas').value = String(d.parcelas || 1);
+    faturaTocada = true;
+    montarOpcoesFatura(d.primeiraFatura || undefined);
+    $('#f-cartao').value = d.cartao || '';
+    $('#f-responsavel').value = d.responsavel || '';
+    $('#f-obs').value = d.obs || '';
+    $('#form-titulo').textContent = 'Editar despesa';
+    $('#btn-salvar').textContent = 'Salvar alterações';
+    $('#btn-cancelar').hidden = false;
+    $('#form-erro').textContent = '';
+    atualizarCamposPagamento();
+    $('#f-descricao').focus();
+  }
+
+  function excluir(id) {
+    const d = despesas.find(x => x.id === id);
+    if (!d) return;
+    let msg = `Excluir "${d.descricao}" (${BRL(d.valor)}, ${N.formatarData(d.data)})?`;
+    if (d.parcelas > 1) msg += `\n\nTodas as ${d.parcelas} parcelas desta compra serão removidas.`;
+    msg += '\n\nEsta ação não pode ser desfeita.';
+    if (!confirm(msg)) return;
+    const antes = despesas;
+    despesas = despesas.filter(x => x.id !== id);
+    if (!salvar()) { despesas = antes; return; }
+    if (editandoId === id) limparFormulario(true);
+    toast('Despesa excluída');
+    renderizar();
+  }
+
+  function enviarFormulario(ev) {
+    ev.preventDefault();
+    const erro = $('#form-erro');
+    const valor = N.parseValor($('#f-valor').value);
+    if (Number.isNaN(valor)) { erro.textContent = 'Valor inválido. Use, por exemplo, 25,90 ou 1.250,00.'; $('#f-valor').focus(); return; }
+    const anterior = editandoId ? despesas.find(x => x.id === editandoId) : null;
+    let d;
+    try {
+      d = N.normalizarDespesa({
+        id: editandoId || undefined,
+        descricao: $('#f-descricao').value,
+        data: $('#f-data').value,
+        valor,
+        categoria: radio('categoria'),
+        pagamento: radio('pagamento'),
+        parcelas: Number($('#f-parcelas').value),
+        primeiraFatura: $('#f-fatura').value,
+        cartao: $('#f-cartao').value,
+        responsavel: $('#f-responsavel').value,
+        obs: $('#f-obs').value,
+        criadoEm: anterior ? anterior.criadoEm : undefined,
+        atualizadoEm: new Date().toISOString(),
+      });
+    } catch (e) {
+      erro.textContent = e.message;
+      return;
+    }
+    const antes = despesas;
+    despesas = anterior ? despesas.map(x => (x.id === d.id ? d : x)) : despesas.concat(d);
+    if (!salvar()) { despesas = antes; return; }
+    toast(anterior ? 'Alterações salvas' : `Despesa salva: ${BRL(d.valor)}`);
+    // Depois de um novo lançamento, mantém data, pagamento, cartão e responsável para agilizar o próximo.
+    limparFormulario(!!anterior);
+    renderizar();
+    if (!anterior) $('#f-descricao').focus();
+  }
+
+  // ---------- Listas ----------
+  function htmlItem(d, extra) {
+    const h = hoje();
+    const pag = N.rotuloPagamento(d.pagamento) + (d.cartao ? ` · ${d.cartao}` : '');
+    const meta = [N.formatarData(d.data), N.rotuloCategoria(d.categoria), pag, d.responsavel].filter(Boolean).map(esc).join(' · ');
+    let parc = '';
+    if (d.pagamento === 'credito') {
+      const r = N.resumoParcelamento(d, h);
+      if (d.parcelas > 1) {
+        parc = `${d.parcelas}x de ${BRL(r.valores[r.valores.length - 1])} · ${N.rotuloMes(r.primeira)} a ${N.rotuloMes(r.ultima)} · ` +
+          (r.restante > 0 ? `<span class="selo">Restam ${BRL(r.restante)} (${r.parcelasRestantes} parc.)</span>` : 'Concluído');
+      } else {
+        parc = `Fatura de ${N.rotuloMes(r.primeira)}` + (r.restante > 0 ? ' · <span class="selo">A vencer</span>' : '');
+      }
+    } else if (d.data > h) {
+      parc = '<span class="selo">Data futura</span>';
+    }
+    let periodo = '';
+    if (extra && d.parcelas > 1) {
+      const nums = extra.lancamentos.map(l => l.parcela).join(', ');
+      periodo = `<div class="item-parc">No período filtrado: <strong>${BRL(extra.valorPeriodo)}</strong> (parcela ${nums} de ${d.parcelas})</div>`;
+    }
+    return `<li class="item">
+      <div class="item-topo"><strong>${esc(d.descricao)}</strong><span class="valor">${BRL(d.valor)}</span></div>
+      <div class="item-meta">${meta}</div>
+      ${parc ? `<div class="item-parc">${parc}</div>` : ''}${periodo}
+      ${d.obs ? `<div class="item-obs">${esc(d.obs)}</div>` : ''}
+      <div class="item-acoes">
+        <button type="button" class="btn pequeno" data-editar="${esc(d.id)}">Editar</button>
+        <button type="button" class="btn pequeno perigo" data-excluir="${esc(d.id)}">Excluir</button>
+      </div></li>`;
+  }
+
+  function renderUltimos() {
+    const ult = despesas.slice().sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm))).slice(0, 5);
+    $('#ultimos').innerHTML = ult.length ? ult.map(d => htmlItem(d)).join('')
+      : '<li class="vazio">Nenhuma despesa cadastrada ainda.</li>';
+    const ub = lerChave(CHAVE_ULTIMO_BACKUP);
+    const dias = ub ? Math.floor((Date.now() - new Date(ub).getTime()) / 86400000) : null;
+    $('#lembrete-backup').textContent = !despesas.length ? ''
+      : ub ? `Último backup: ${new Date(ub).toLocaleDateString('pt-BR')}${dias >= 30 ? ' — recomendado fazer um novo na aba Dados.' : '.'}`
+      : 'Você ainda não fez nenhum backup. Faça um na aba Dados para não perder seus registros.';
+  }
+
+  function mesesDisponiveis() {
+    let min = mesAtual(), max = mesAtual();
+    for (const d of despesas) for (const l of N.lancamentos(d)) { if (l.mes < min) min = l.mes; if (l.mes > max) max = l.mes; }
+    const lista = [];
+    for (let m = max; m >= min; m = N.addMeses(m, -1)) lista.push(m);
+    return lista;
+  }
+
+  function preencherSelect(sel, opcoes, valor, rotuloTodos) {
+    if (valor && !opcoes.some(o => o[0] === valor)) opcoes = opcoes.concat([[valor, valor]]);
+    sel.innerHTML = `<option value="">${rotuloTodos}</option>` +
+      opcoes.map(([v, r]) => `<option value="${esc(v)}">${esc(r)}</option>`).join('');
+    sel.value = valor;
+  }
+
+  function unicos(campo) {
+    return [...new Set(despesas.map(d => d[campo]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }
+
+  function renderFiltros() {
+    const meses = mesesDisponiveis().map(m => [m, N.rotuloMesLongo(m)]);
+    preencherSelect($('#fl-de'), meses, filtro.de, 'Início');
+    preencherSelect($('#fl-ate'), meses, filtro.ate, 'Fim');
+    preencherSelect($('#fl-categoria'), N.CATEGORIAS, filtro.categoria, 'Todas');
+    preencherSelect($('#fl-pagamento'), N.PAGAMENTOS, filtro.pagamento, 'Todas');
+    const cartoes = unicos('cartao'), resps = unicos('responsavel');
+    preencherSelect($('#fl-cartao'), cartoes.map(c => [c, c]), filtro.cartao, 'Todos');
+    preencherSelect($('#fl-responsavel'), resps.map(r => [r, r]), filtro.responsavel, 'Todos');
+    $('#lista-cartoes').innerHTML = cartoes.map(c => `<option value="${esc(c)}">`).join('');
+    $('#lista-responsaveis').innerHTML = resps.map(r => `<option value="${esc(r)}">`).join('');
+    const resumo = descreverFiltro();
+    $('#filtros-resumo').textContent = '— ' + resumo;
+    $('#dados-filtro-resumo').textContent = resumo;
+  }
+
+  function descreverFiltro() {
+    const p = [];
+    if (filtro.de || filtro.ate) {
+      p.push(filtro.de === filtro.ate ? N.rotuloMes(filtro.de)
+        : `${filtro.de ? N.rotuloMes(filtro.de) : 'início'} a ${filtro.ate ? N.rotuloMes(filtro.ate) : 'fim'}`);
+    } else p.push('todo o período');
+    if (filtro.categoria) p.push(N.rotuloCategoria(filtro.categoria));
+    if (filtro.pagamento) p.push(N.rotuloPagamento(filtro.pagamento));
+    if (filtro.cartao) p.push(filtro.cartao);
+    if (filtro.responsavel) p.push(filtro.responsavel);
+    if (filtro.busca) p.push(`“${filtro.busca}”`);
+    return p.join(', ');
+  }
+
+  function renderLista() {
+    const r = N.filtrar(despesas, filtro, hoje());
+    $('#resumo-lista').innerHTML =
+      `<div class="card destaque"><span>Total no período</span><strong>${BRL(r.total)}</strong></div>` +
+      `<div class="card"><span>Realizado</span><strong>${BRL(r.realizado)}</strong></div>` +
+      `<div class="card fut"><span>A vencer</span><strong>${BRL(r.futuro)}</strong></div>` +
+      `<div class="card"><span>Despesas</span><strong>${r.itens.length}</strong></div>`;
+    $('#lista').innerHTML = r.itens.length ? r.itens.map(it => htmlItem(it.despesa, it)).join('')
+      : `<li class="vazio">${despesas.length ? 'Nenhuma despesa encontrada com estes filtros.' : 'Nenhuma despesa cadastrada ainda.'}</li>`;
+  }
+
+  // ---------- Relatórios ----------
+  function renderRelatorios() {
+    const h = hoje();
+    const base = despesas.filter(d => N.passaFiltroAtributos(d, { ...filtro, busca: '' }));
+    const meses = N.totaisPorMes(base, h);
+    const opcoes = mesesDisponiveis();
+    const sel = $('#rel-mes');
+    const ref = opcoes.includes(sel.value) ? sel.value : mesAtual();
+    sel.innerHTML = opcoes.map(m => `<option value="${m}">${N.rotuloMesLongo(m)}</option>`).join('');
+    sel.value = ref;
+
+    const vazio = { total: 0, realizado: 0, futuro: 0, categorias: {} };
+    const t = meses[ref] || vazio;
+    const ant = meses[N.addMeses(ref, -1)] || vazio;
+    let varTxt = '—';
+    if (ant.total > 0) {
+      const pct = (t.total - ant.total) / ant.total * 100;
+      varTxt = `${pct > 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}%`;
+    }
+    $('#rel-cards').innerHTML =
+      `<div class="card destaque"><span>Total de ${esc(N.rotuloMes(ref))}</span><strong>${BRL(t.total)}</strong></div>` +
+      `<div class="card"><span>Realizado</span><strong>${BRL(t.realizado)}</strong></div>` +
+      `<div class="card fut"><span>A vencer no mês</span><strong>${BRL(t.futuro)}</strong></div>` +
+      `<div class="card"><span>vs. mês anterior</span><strong>${varTxt}</strong></div>`;
+
+    const cats = Object.entries(t.categorias).sort((a, b) => b[1] - a[1]);
+    $('#rel-categorias').innerHTML = cats.length ? cats.map(([c, v]) => {
+      const pct = t.total ? v / t.total * 100 : 0;
+      return `<div class="barra-linha"><span>${esc(N.rotuloCategoria(c))} <span class="nota">${pct.toFixed(0)}%</span></span>
+        <span class="num">${BRL(v)}</span><div class="barra"><span style="width:${pct.toFixed(1)}%"></span></div></div>`;
+    }).join('') : '<p class="vazio">Sem gastos neste mês.</p>';
+
+    // Comparação: 6 meses terminando no mês escolhido
+    const comp = [];
+    for (let i = 5; i >= 0; i--) { const m = N.addMeses(ref, -i); comp.push([m, (meses[m] || vazio)]); }
+    const maxComp = Math.max(1, ...comp.map(c => c[1].total));
+    $('#rel-comparacao').innerHTML = `<table><thead><tr><th>Mês</th><th class="n">Total</th><th class="n">Variação</th><th style="width:35%"></th></tr></thead><tbody>` +
+      comp.map(([m, v], i) => {
+        let varia = '—', cls = '';
+        const prev = i > 0 ? comp[i - 1][1].total : (meses[N.addMeses(m, -1)] || vazio).total;
+        if (prev > 0) {
+          const pct = (v.total - prev) / prev * 100;
+          varia = `${pct > 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}%`;
+          cls = pct > 0 ? 'sobe' : pct < 0 ? 'desce' : '';
+        }
+        return `<tr><td>${N.rotuloMes(m)}</td><td class="n">${BRL(v.total)}</td><td class="n ${cls}">${varia}</td>
+          <td><div class="barra"><span style="width:${(v.total / maxComp * 100).toFixed(1)}%"></span></div></td></tr>`;
+      }).join('') + '</tbody></table>';
+
+    // Futuro
+    const proj = N.projecao(base, h);
+    const totalFuturo = proj.reduce((s, p) => s + p.valor, 0);
+    const ativos = N.parcelamentosAtivos(base, h);
+    const ultimoMes = proj.length ? proj[proj.length - 1].mes : null;
+    $('#rel-futuro-cards').innerHTML =
+      `<div class="card fut"><span>Total a vencer</span><strong>${BRL(totalFuturo)}</strong></div>` +
+      `<div class="card"><span>Parcelamentos ativos</span><strong>${ativos.length}</strong></div>` +
+      `<div class="card"><span>Último vencimento</span><strong>${ultimoMes ? N.rotuloMes(ultimoMes) : '—'}</strong></div>`;
+
+    let acumulado = 0;
+    $('#rel-projecao').innerHTML = proj.length
+      ? `<table><thead><tr><th>Mês</th><th class="n">A vencer</th><th class="n">Itens</th><th class="n">Acumulado</th></tr></thead><tbody>` +
+        proj.map(p => {
+          acumulado += p.valor;
+          const itens = [p.parcelas ? `${p.parcelas} parc.` : '', p.outros ? `${p.outros} outro${p.outros > 1 ? 's' : ''}` : ''].filter(Boolean).join(' + ');
+          return `<tr><td>${N.rotuloMes(p.mes)}</td><td class="n">${BRL(p.valor)}</td><td class="n">${itens}</td><td class="n">${BRL(acumulado)}</td></tr>`;
+        }).join('') + '</tbody></table>'
+      : '<p class="vazio">Nenhum compromisso futuro.</p>';
+
+    $('#rel-parcelamentos').innerHTML = ativos.length
+      ? `<table><thead><tr><th>Compra</th><th class="n">Parcela</th><th class="n">Pagas</th><th class="n">Saldo restante</th><th>Termina</th></tr></thead><tbody>` +
+        ativos.map(({ despesa: d, resumo: r }) =>
+          `<tr><td class="desc">${esc(d.descricao)}${d.cartao ? ` <span class="nota">${esc(d.cartao)}</span>` : ''}</td>
+          <td class="n">${BRL(r.valores[r.valores.length - 1])}</td><td class="n">${r.pagas}/${r.parcelas}</td>
+          <td class="n">${BRL(r.restante)}</td><td>${N.rotuloMes(r.ultima)}</td></tr>`).join('') + '</tbody></table>'
+      : '<p class="vazio">Nenhum parcelamento em andamento.</p>';
+  }
+
+  function renderDados() {
+    const ub = lerChave(CHAVE_ULTIMO_BACKUP);
+    $('#dados-status').textContent = `${despesas.length} despesa(s) salva(s) neste navegador. ` +
+      (ub ? `Último backup baixado em ${new Date(ub).toLocaleString('pt-BR')}.` : 'Nenhum backup baixado ainda.');
+    $('#btn-desfazer-restauracao').hidden = !lerChave(CHAVE_ANTES_RESTAURAR);
+  }
+
+  function renderizar() {
+    renderFiltros();
+    if (aba === 'lancar') renderUltimos();
+    if (aba === 'despesas') renderLista();
+    if (aba === 'relatorios') renderRelatorios();
+    if (aba === 'dados') renderDados();
+  }
+
+  // ---------- Exportação e backup ----------
+  function exportarCSV(somenteFiltrados) {
+    const formato = radio('formato-csv') || 'despesas';
+    const f = somenteFiltrados ? filtro : {};
+    const r = N.filtrar(despesas, f, hoje());
+    if (!r.itens.length) { alert('Não há registros para exportar.'); return; }
+    const texto = formato === 'mensal' ? N.csvMensal(r.itens, hoje())
+      : N.csvDespesas(r.itens, { comPeriodo: somenteFiltrados && !!(filtro.de || filtro.ate) });
+    const nome = `gastos-${somenteFiltrados ? 'filtrados' : 'todos'}-${formato}-${hoje()}.csv`;
+    baixar(nome, N.arquivoCSV(texto), 'text/csv;charset=utf-8');
+    toast(`CSV exportado (${r.itens.length} despesa(s))`);
+  }
+
+  function baixarBackup() {
+    const agora = new Date().toISOString();
+    baixar(`backup-gastos-${hoje()}.json`, JSON.stringify(N.criarBackup(despesas, agora), null, 2), 'application/json');
+    try { gravarChave(CHAVE_ULTIMO_BACKUP, agora); } catch (e) { /* ignora */ }
+    toast('Backup baixado');
+    renderizar();
+  }
+
+  function restaurarArquivo(arquivo) {
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      let novas;
+      try { novas = N.lerBackup(String(leitor.result)); } catch (e) { alert(e.message); return; }
+      if (!confirm(`Restaurar ${novas.length} despesa(s) do arquivo "${arquivo.name}"?\n\n` +
+        `Isso SUBSTITUI as ${despesas.length} despesa(s) atuais deste navegador.`)) return;
+      try { gravarChave(CHAVE_ANTES_RESTAURAR, JSON.stringify({ versao: 1, despesas })); } catch (e) { /* sem espaço */ }
+      const antes = despesas;
+      despesas = novas;
+      if (!salvar()) { despesas = antes; return; }
+      limparFormulario(true);
+      toast('Backup restaurado');
+      renderizar();
+    };
+    leitor.onerror = () => alert('Não foi possível ler o arquivo.');
+    leitor.readAsText(arquivo, 'utf-8');
+  }
+
+  function desfazerRestauracao() {
+    const bruto = lerChave(CHAVE_ANTES_RESTAURAR);
+    if (!bruto) return;
+    let anteriores;
+    try { anteriores = N.lerBackup(bruto); } catch (e) { alert(e.message); return; }
+    if (!confirm(`Voltar para os ${anteriores.length} registro(s) que existiam antes da última restauração?`)) return;
+    despesas = anteriores;
+    if (!salvar()) return;
+    try { localStorage.removeItem(CHAVE_ANTES_RESTAURAR); } catch (e) { /* ignora */ }
+    toast('Restauração desfeita');
+    renderizar();
+  }
+
+  // ---------- Inicialização ----------
+  function iniciar() {
+    if (!armazenamentoDisponivel()) {
+      mostrarAviso('Este navegador não está permitindo salvar dados (aba anônima ou bloqueio de armazenamento). ' +
+        'O que você lançar será perdido ao fechar. Abra em uma janela normal.');
+    }
+    carregar();
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+    montarChips($('#f-categoria'), 'categoria', N.CATEGORIAS);
+    montarChips($('#f-pagamento'), 'pagamento', N.PAGAMENTOS);
+    $('#f-parcelas').innerHTML = Array.from({ length: N.MAX_PARCELAS }, (_, i) =>
+      `<option value="${i + 1}">${i === 0 ? '1x (à vista)' : (i + 1) + 'x'}</option>`).join('');
+
+    filtro.de = filtro.ate = mesAtual();
+    limparFormulario(true);
+
+    document.querySelectorAll('.abas button').forEach(b => b.addEventListener('click', () => irPara(b.dataset.aba)));
+    $('#form').addEventListener('submit', enviarFormulario);
+    $('#btn-cancelar').addEventListener('click', () => limparFormulario(true));
+    $('#f-pagamento').addEventListener('change', atualizarCamposPagamento);
+    $('#f-parcelas').addEventListener('change', atualizarCamposPagamento);
+    $('#f-valor').addEventListener('input', atualizarPrevia);
+    $('#f-fatura').addEventListener('change', () => { faturaTocada = true; atualizarPrevia(); });
+    $('#f-data').addEventListener('change', () => {
+      montarOpcoesFatura(faturaTocada ? $('#f-fatura').value : undefined);
+      atualizarPrevia();
+    });
+    $('#f-descricao').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#f-valor').focus(); } });
+
+    document.addEventListener('click', e => {
+      const ed = e.target.closest('[data-editar]');
+      if (ed) return editar(ed.dataset.editar);
+      const ex = e.target.closest('[data-excluir]');
+      if (ex) excluir(ex.dataset.excluir);
+    });
+
+    const ligarFiltro = (id, campo, evento) => $(id).addEventListener(evento || 'change', e => { filtro[campo] = e.target.value; renderizar(); });
+    ligarFiltro('#fl-de', 'de'); ligarFiltro('#fl-ate', 'ate');
+    ligarFiltro('#fl-categoria', 'categoria'); ligarFiltro('#fl-pagamento', 'pagamento');
+    ligarFiltro('#fl-cartao', 'cartao'); ligarFiltro('#fl-responsavel', 'responsavel');
+    $('#fl-busca').addEventListener('input', e => { filtro.busca = e.target.value; renderLista(); });
+    $('#btn-limpar-filtros').addEventListener('click', () => {
+      Object.keys(filtro).forEach(k => { filtro[k] = ''; });
+      $('#fl-busca').value = '';
+      renderizar();
+    });
+    $('#rel-mes').addEventListener('change', renderRelatorios);
+
+    $('#btn-csv-lista').addEventListener('click', () => exportarCSV(true));
+    $('#btn-csv-filtrados').addEventListener('click', () => exportarCSV(true));
+    $('#btn-csv-todos').addEventListener('click', () => exportarCSV(false));
+    $('#btn-backup').addEventListener('click', baixarBackup);
+    $('#btn-restaurar').addEventListener('click', () => $('#arquivo-backup').click());
+    $('#arquivo-backup').addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (f) restaurarArquivo(f);
+      e.target.value = '';
+    });
+    $('#btn-desfazer-restauracao').addEventListener('click', desfazerRestauracao);
+
+    // Se a página ficar aberta em outra aba, mantém os dados em dia.
+    window.addEventListener('storage', e => { if (e.key === CHAVE) { carregar(); renderizar(); } });
+
+    renderizar();
+  }
+
+  iniciar();
+})();
+</script>
+</body>
+</html>
